@@ -100,13 +100,13 @@ RUN set -eux; \
 	wget -O nginx-http-flv.tar.gz --no-check-certificate "https://github.com/winshining/nginx-http-flv-module/archive/v$HTTP_FLV_VERSION.tar.gz"; \
 	\
 # verify the signature
-	export GNUPGHOME="$(mktemp -d)"; \
+#	export GNUPGHOME="$(mktemp -d)"; \
 ##	gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys $APP_KEYS; \
-	gpg --import nginx_signing.key; \
-	gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz; \
-	command -v gpgconf > /dev/null && gpgconf --kill all || :; \
-	rm -r "$GNUPGHOME" nginx.tar.gz.asc; \
-	apt-key list; \
+#	gpg --import nginx_signing.key; \
+#	gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz; \
+#	command -v gpgconf > /dev/null && gpgconf --kill all || :; \
+#	rm -r "$GNUPGHOME" nginx.tar.gz.asc; \
+#	apt-key list; \
 	\
 	mkdir -p nginx-$APP_MAJOR; \
 	tar -xzvf nginx.tar.gz -C nginx-$APP_MAJOR --strip-components 1; \
@@ -157,4 +157,4 @@ STOPSIGNAL SIGTERM
 
 ENTRYPOINT ["entrypoint.sh"]
 
-CMD ["nginx", "-g", "daemon off;", "-c", "/srv/conf/nginx/nginx.conf"]
+CMD ["nginx", "-g", "daemon off;"]
