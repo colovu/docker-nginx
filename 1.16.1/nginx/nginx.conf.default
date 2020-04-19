@@ -1,7 +1,8 @@
 # /etc/nginx/nginx.conf
 
-#user nginx;
-user root;
+# 针对Docker镜像使用，请不要修改为其他用户
+user nginx;
+group nginx;
 
 # Set number of worker processes automatically based on number of CPU cores.
 worker_processes auto;

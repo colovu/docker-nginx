@@ -48,6 +48,22 @@ docker run -d --name nginx \
   endial/nginx-ubuntu:v1.16.1
 ```
 
+使用宿主机用户（如`www-data`用户生成新的容器：
+
+```shell
+docker run -d --name nginx \
+	--user www-data \
+  -p 80:80 \
+  -v $DOCKER_VOLUME_BASE/srv/www:/srv/www:ro \
+  -v $DOCKER_VOLUME_BASE/var/log:/var/log \
+  -v $DOCKER_VOLUME_BASE/srv/conf:/srv/conf \
+  endial/nginx-ubuntu:v1.16.1
+```
+
+> 注意：如果使用自定义用户创建容器，且需要使用数据卷，可以有两种方式确保权限正确：
+>
+> - 指定数据卷目录中不存在nginx子目录，由容器创建对应nginx目录及配置文件，然后个性化修改
+> - 指定数据卷目录中存在nginx子目录，需要确保子目录及目录中文件属于启动容器时所指定的用户组
 
 如果存在`dvc`数据容器，可以使用以下命令：
 
