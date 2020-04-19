@@ -13,6 +13,9 @@ ENV PCRE_VERSION        8.43
 ENV OPENSSL_VERSION     1.1.1e
 ENV HTTP_FLV_VERSION    1.2.7
 
+# 确保程序使用静默安装，而非交互模式
+ENV DEBIAN_FRONTEND 	noninteractive
+
 LABEL \
 	"Version"="v${APP_MAJOR}" \
 	"Description"="Docker image for ${APP_NAME} ${APP_MAJOR} based on Ubuntu 18.04." \
@@ -81,6 +84,9 @@ RUN set -eux; \
 		gpg-agent \
 		dirmngr \
 		zlib1g-dev \
+		libxml2-dev \
+		libxslt-dev \
+		libterm-readkey-perl \
 	"; \
 	apt update; \
 	apt install -y --no-install-recommends ${fetchDeps}; \
