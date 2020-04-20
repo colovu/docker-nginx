@@ -6,8 +6,8 @@
 
 ## 基本信息
 
-* 镜像地址：endial/nginx-ubuntu:v1.16.1
-* 依赖镜像：endial/ubuntu:v18.04
+* 镜像地址：endial/nginx:v1.16.1
+  * 依赖镜像：endial/ubuntu:v18.04
 
 
 
@@ -41,7 +41,7 @@ export DOCKER_VOLUME_BASE=</volumes/path>
 
 ```bash
 docker run -d --name nginx \
-  -p 80:80 \
+  -p 80:8080 \
   -v $DOCKER_VOLUME_BASE/srv/www:/srv/www:ro \
   -v $DOCKER_VOLUME_BASE/var/log:/var/log \
   -v $DOCKER_VOLUME_BASE/srv/conf:/srv/conf \
@@ -53,7 +53,7 @@ docker run -d --name nginx \
 ```shell
 docker run -d --name nginx \
 	--user www-data \
-  -p 80:80 \
+  -p 80:8080 \
   -v $DOCKER_VOLUME_BASE/srv/www:/srv/www:ro \
   -v $DOCKER_VOLUME_BASE/var/log:/var/log \
   -v $DOCKER_VOLUME_BASE/srv/conf:/srv/conf \
@@ -69,7 +69,7 @@ docker run -d --name nginx \
 
 ```bash
 docker run -d --name nginx \
-  -p 80:80 \
+  -p 80:8080 \
   --volumes-from dvc \
   endial/nginx-ubuntu:v1.16.1
 ```

@@ -44,6 +44,7 @@ docker_create_user_directories() {
   LOG_I "Check directories used by ${APP_NAME}"
   mkdir -p "/var/log/${APP_NAME}"
   mkdir -p "/var/run/${APP_NAME}"
+  mkdir -p "/var/cache/${APP_NAME}"
 
   mkdir -p "/srv/conf/${APP_NAME}/conf.d"
   [ ! -e /srv/conf/nginx/nginx.conf ] && cp /etc/nginx/nginx.conf.default /srv/conf/nginx/nginx.conf
@@ -52,22 +53,27 @@ docker_create_user_directories() {
 
   # 允许容器使用`--user`参数启动，修改相应目录的所属用户信息
   if [ "$user_id" = '0' ]; then
-    LOG_I "Chang owner of resources to: ${APP_USER}"
+    LOG_I "Chang owner of resources to: ${APP_USER} by root"
     find /var/run/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
     find /var/log/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
+    find /var/cache/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
     find /srv/conf/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
-    find /etc/nginx \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
-  elif [ ! "$user_id" = "$(id -u ${APP_USER})"]; then
-    chown "$user_id" /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx
+# 解决使用gosu后，nginx: [emerg] open() "/dev/stdout" failed (13: Permission denied)
+    chmod 0622 /dev/stdout /dev/stderr
+  else
+    LOG_I "Chang owner of resources to: $user_id by $user_id"
+    find /var/run/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
+    find /var/log/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
+    find /var/cache/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
+    find /srv/conf/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
   fi
 
-  chmod 755 /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx
+  chmod 755 /etc/nginx /var/log/nginx /var/cache/nginx /var/run/nginx /srv/conf/nginx || :
 
 }
 
 # 检测可能导致容器执行后直接退出的命令，如"--help"；如果存在，直接返回 0
 docker_app_want_help() {
-  LOG_I "Check command type"
   local arg
   for arg; do
     case "$arg" in
@@ -92,13 +98,13 @@ _main() {
     # 以root用户运行时，设置数据存储目录与权限；设置完成后，会使用gosu重新以"postgres"用户运行当前脚本
     docker_create_user_directories
     if [ "$(id -u)" = '0' ]; then
-      LOG_I "Restart container with default user: ${APP_USER}'"
+      LOG_I "Restart container with default user: ${APP_USER}"
       LOG_I ""
       exec gosu ${APP_USER} "$0" "$@"
     fi
   fi
   
-  LOG_I "Start application ${APP_NAME}: $@"
+  LOG_I "Start container with: $@"
 
   # 执行命令行
   exec "$@"

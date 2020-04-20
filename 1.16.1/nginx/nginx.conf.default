@@ -2,7 +2,9 @@
 
 # 针对Docker镜像使用，请不要修改为其他用户
 user nginx;
-group nginx;
+
+# 关闭后台模式，防止默认设置为后台模式时导致容器直接退出
+daemon off;
 
 # Set number of worker processes automatically based on number of CPU cores.
 worker_processes auto;
@@ -11,12 +13,14 @@ worker_processes auto;
 pcre_jit on;
 
 # Configures default error logger.
-error_log /var/log/nginx/error.log warn;
+# error_log /var/log/nginx/error.log warn;
+#error_log /dev/stdout warn;
 
 # Includes files with directives to load dynamic modules.
 include /etc/nginx/modules/*.conf;
 
-pid /var/run/nginx.pid;
+# 设置PID文件路径为对应的子目录
+pid /var/run/nginx/nginx.pid;
 
 worker_rlimit_nofile 32767;
 
@@ -103,11 +107,14 @@ http {
 			'"$http_user_agent" "$http_x_forwarded_for"';
 
 	# Sets the path, format, and configuration for a buffered log write.
-	access_log /var/log/nginx/access.log main;
-	error_log  /var/log/nginx/error.log warn;
-
-	#access_log off;
-	#error_log /dev/null;
+#	access_log /var/log/nginx/access.log main;
+#	error_log  /var/log/nginx/error.log warn;
+	access_log /dev/stdout main;
+	error_log  /dev/stdout warn;
+	
+	# Turn off log output
+	# access_log /dev/null;
+	# error_log /dev/null;
 
 	# Includes virtual hosts configs.
 	include /srv/conf/nginx/conf.d/*.conf;

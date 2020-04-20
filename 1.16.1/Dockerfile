@@ -24,9 +24,9 @@ LABEL \
 
 RUN set -eux; \
 	groupadd -r ${APP_GROUP}; \
-	useradd -r -g ${APP_GROUP} -s /usr/sbin/nologin ${APP_USER}; \
+	useradd -r -g ${APP_GROUP} -s /usr/sbin/nologin -d /usr/cache/nginx ${APP_USER}; \
 	\
-	mkdir -p /etc/nginx /srv/conf/nginx /var/log/nginx /var/cache/nginx; \
+	mkdir -p /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx /var/cache/nginx; \
 	\
 	NGINX_CONFIG=" \
 		--prefix=/etc/nginx \
@@ -86,16 +86,27 @@ RUN set -eux; \
 		zlib1g-dev \
 		libxml2-dev \
 		libxslt-dev \
+		libgd-dev \
+		libc6-dev \
+		libgeoip-dev \
 		libterm-readkey-perl \
 	"; \
-	apt update; \
-	apt install -y --no-install-recommends ${fetchDeps}; \
+	apt-get update; \
+	apt-get install -y ${fetchDeps}; \
 	\
-	apt install -y --no-install-recommends zlib1g; \
+	apt install -y --no-install-recommends \
+		zlib1g \
+		libxml2 \
+		libxslt1.1 \
+		geoip-bin \
+		geoip-database \
+		libgd3 \
+		libc6 \
+	; \
 	\
 	wget -O nginx.tar.gz "http://nginx.org/download/nginx-$APP_MAJOR.tar.gz"; \
 	wget -O nginx.tar.gz.asc "http://nginx.org/download/nginx-$APP_MAJOR.tar.gz.asc"; \
-	wget -O nginx_signing.key "https://nginx.org/keys/nginx_signing.key"; \
+#	wget -O nginx_signing.key "https://nginx.org/keys/nginx_signing.key"; \
 	\
 	wget -O openssl.tar.gz --no-check-certificate "https://www.openssl.org/source/old/1.1.1/openssl-${OPENSSL_VERSION}.tar.gz"; \
 	wget -O openssl.tar.gz.asc --no-check-certificate "https://www.openssl.org/source/old/1.1.1/openssl-${OPENSSL_VERSION}.tar.gz.asc"; \
@@ -140,12 +151,10 @@ RUN set -eux; \
 	\
 	cd /; \
 	rm -rf /nginx-$APP_MAJOR; \
-	ln -sf /dev/stdout /var/log/nginx/access.log; \
-	ln -sf /dev/stderr /var/log/nginx/error.log; \
-	ln -sf /etc/nginx/nginx.conf /srv/conf/nginx/nginx.conf; \
-	chown -Rf nginx:nginx /etc/nginx /srv/conf/nginx /var/log/nginx /var/cache/nginx; \
+	ln -sf /srv/conf/nginx/nginx.conf /etc/nginx/nginx.conf; \
+	chown -Rf nginx:nginx /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx /var/cache/nginx; \
 # this 777 will be replaced by 700 or 755 at runtime (allows semi-arbitrary "--user" values)
-	chmod 777 /etc/nginx /srv/conf/nginx /var/log/nginx /var/cache/nginx; \
+	chmod 777 /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx /var/cache/nginx; \
 	\
 	apt purge -y --auto-remove ${fetchDeps}; \
 	apt autoclean -y; \
@@ -157,7 +166,8 @@ COPY ./nginx /etc/nginx
 
 VOLUME ["/srv/www", "/srv/conf", "/srv/cert", "/var/log", "/var/run"]
 
-EXPOSE 80 443
+# 解决使用gosu后，nginx: [emerg] bind() to 0.0.0.0:80 failed (13: Permission denied)
+EXPOSE 8080 8443
 
 STOPSIGNAL SIGTERM
 
