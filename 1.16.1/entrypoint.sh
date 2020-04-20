@@ -11,7 +11,7 @@ set -Eeo pipefail
 
 LOG_RAW() {
   local type="$1"; shift
-  printf '%s [%s] Entrypoint: %s\n' "$(date --rfc-3339=seconds)" "$type" "$*"
+  printf '%s [%s] Entrypoint: %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$type" "$*"
 }
 LOG_I() {
   LOG_RAW Note "$@"
@@ -24,7 +24,7 @@ LOG_E() {
   exit 1
 }
 
-LOG_I "Initial container for ${APP_NAME}"
+LOG_I "Initial container for nginx"
 
 # 检测当前脚本是被直接执行的，还是从其他脚本中使用 "source" 调用的
 _is_sourced() {
@@ -41,24 +41,24 @@ docker_create_user_directories() {
 
   # 如果设置了'--user'，这里 user_id 不为 0
   # 如果没有设置'--user'，这里 user_id 为 0，需要使用默认用户名设置相关目录权限
-  LOG_I "Check directories used by ${APP_NAME}"
-  mkdir -p "/var/log/${APP_NAME}"
-  mkdir -p "/var/run/${APP_NAME}"
-  mkdir -p "/var/cache/${APP_NAME}"
+  LOG_I "Check directories used by nginx"
+  mkdir -p "/var/log/nginx"
+  mkdir -p "/var/run/nginx"
+  mkdir -p "/var/cache/nginx"
 
-  mkdir -p "/srv/conf/${APP_NAME}/conf.d"
+  mkdir -p "/srv/conf/nginx/conf.d"
   [ ! -e /srv/conf/nginx/nginx.conf ] && cp /etc/nginx/nginx.conf.default /srv/conf/nginx/nginx.conf
   [ ! -e /srv/conf/nginx/mime.types ] && cp /etc/nginx/mime.types /srv/conf/nginx/
   [ ! -e /srv/conf/nginx/conf.d/default.conf ] && cp /etc/nginx/conf.d/default.conf /srv/conf/nginx/conf.d/
 
   # 允许容器使用`--user`参数启动，修改相应目录的所属用户信息
   if [ "$user_id" = '0' ]; then
-    LOG_I "Chang owner of resources to: ${APP_USER} by root"
-    find /var/run/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
-    find /var/log/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
-    find /var/cache/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
-    find /srv/conf/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
-	chmod 755 /etc/nginx /var/log/nginx /var/cache/nginx /var/run/nginx /srv/conf/nginx 
+    LOG_I "Chang owner of resources to: nginx by root"
+    find /var/run/nginx \! -user nginx -exec chown nginx '{}' +
+    find /var/log/nginx \! -user nginx -exec chown nginx '{}' +
+    find /var/cache/nginx \! -user nginx -exec chown nginx '{}' +
+    find /srv/conf/nginx \! -user nginx -exec chown nginx '{}' +
+    chmod 755 /etc/nginx /var/log/nginx /var/cache/nginx /var/run/nginx /srv/conf/nginx 
 # 解决使用gosu后，nginx: [emerg] open() "/dev/stdout" failed (13: Permission denied)
     chmod 0622 /dev/stdout /dev/stderr
   fi
@@ -80,19 +80,19 @@ docker_app_want_help() {
 _main() {
   # 如果命令行参数是以配置参数("-")开始，修改执行命令，确保使用可执行应用命令启动服务器
   if [ "${1:0:1}" = '-' ]; then
-    LOG_I "Add ${APP_EXEC} at the begin of command line"
-    set -- ${APP_EXEC} "$@"
+    LOG_I "Add nginx at the begin of command line"
+    set -- nginx "$@"
   fi
 
   # 命令行参数以可执行应用命令起始，且不包含直接返回的命令(如：-V、--version、--help)时，执行初始化操作
-  if [ "$1" = "${APP_EXEC}" ] && ! docker_app_want_help "$@"; then
+  if [ "$1" = "nginx" ] && ! docker_app_want_help "$@"; then
 
     # 以root用户运行时，设置数据存储目录与权限；设置完成后，会使用gosu重新以"postgres"用户运行当前脚本
     docker_create_user_directories
     if [ "$(id -u)" = '0' ]; then
-      LOG_I "Restart container with default user: ${APP_USER}"
+      LOG_I "Restart container with default user: nginx"
       LOG_I ""
-      exec gosu ${APP_USER} "$0" "$@"
+      exec gosu nginx "$0" "$@"
     fi
   fi
   
