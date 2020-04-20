@@ -58,18 +58,10 @@ docker_create_user_directories() {
     find /var/log/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
     find /var/cache/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
     find /srv/conf/${APP_NAME} \! -user ${APP_USER} -exec chown ${APP_USER} '{}' +
+	chmod 755 /etc/nginx /var/log/nginx /var/cache/nginx /var/run/nginx /srv/conf/nginx 
 # 解决使用gosu后，nginx: [emerg] open() "/dev/stdout" failed (13: Permission denied)
     chmod 0622 /dev/stdout /dev/stderr
-  else
-    LOG_I "Chang owner of resources to: $user_id by $user_id"
-    find /var/run/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
-    find /var/log/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
-    find /var/cache/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
-    find /srv/conf/${APP_NAME} \! -user ${user_id} -exec chown ${user_id} '{}' +
   fi
-
-  chmod 755 /etc/nginx /var/log/nginx /var/cache/nginx /var/run/nginx /srv/conf/nginx || :
-
 }
 
 # 检测可能导致容器执行后直接退出的命令，如"--help"；如果存在，直接返回 0
