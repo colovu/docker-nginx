@@ -1,7 +1,7 @@
 # /etc/nginx/nginx.conf
 
 # 针对Docker镜像使用，请不要修改为其他用户
-user nginx;
+# user nginx;
 
 # 关闭后台模式，防止默认设置为后台模式时导致容器直接退出
 daemon off;
