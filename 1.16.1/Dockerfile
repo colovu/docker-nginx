@@ -1,12 +1,10 @@
-FROM endial/ubuntu:v18.04
-# --platform=$BUILDPLATFORM linux/amd64, linux/arm64, or windows/amd64
+FROM endial/ubuntu:18.04
 
-ENV APP_MAJOR       1.16.1
+ENV APP_MAJOR       1.16.1 \
+	PCRE_VERSION        8.43 \
+	OPENSSL_VERSION     1.1.1e \
+	HTTP_FLV_VERSION    1.2.7
 #ENV APP_KEYS        B0F4253373F8F6F510D42178520A9993A1C052F8
-
-ENV PCRE_VERSION        8.43
-ENV OPENSSL_VERSION     1.1.1e
-ENV HTTP_FLV_VERSION    1.2.7
 
 LABEL \
 	"Version"="v${APP_MAJOR}" \

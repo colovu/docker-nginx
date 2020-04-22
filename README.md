@@ -1,13 +1,13 @@
 # Nginx Ubuntu
 
-基于的 Ubuntu(v1.16.1) 系统的 Nginx 镜像，用于提供 WEB(nginx) 服务。
+基于的 Ubuntu(18.04) 系统的 Nginx 镜像，用于提供 WEB(nginx) 服务。
 
 
 
 ## 基本信息
 
-* 镜像地址：endial/nginx:v1.16.1
-  * 依赖镜像：endial/ubuntu:v18.04
+* 镜像地址：endial/nginx:1.16.1
+  * 依赖镜像：endial/ubuntu:18.04
 
 
 
@@ -54,7 +54,7 @@ docker run -d --name nginx \
   -v /host/dir/to/www:/srv/www:ro \
   -v /host/dir/to/log:/var/log \
   -v /host/dir/to/conf:/srv/conf \
-  endial/nginx:v1.16.1
+  endial/nginx:1.16.1
 ```
 
 使用宿主机用户（如`www-data`用户）生成新的容器：
@@ -66,7 +66,7 @@ docker run -d --name nginx \
   -v /host/dir/to/www:/srv/www:ro \
   -v /host/dir/to/log:/var/log \
   -v /host/dir/to/conf:/srv/conf \
-  endial/nginx:v1.16.1
+  endial/nginx:1.16.1
 ```
 
 > 注意：如果使用自定义用户创建容器，且需要使用数据卷，可以有两种方式确保权限正确：
@@ -80,7 +80,7 @@ docker run -d --name nginx \
 docker run -d --name nginx \
   -p 80:8080 \
   --volumes-from dvc \
-  endial/nginx:v1.16.1
+  endial/nginx:1.16.1
 ```
 
 
