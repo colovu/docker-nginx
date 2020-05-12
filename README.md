@@ -1,13 +1,17 @@
-# Nginx Ubuntu
+# Nginx
 
 基于的 Ubuntu(18.04) 系统的 Nginx 镜像，用于提供 WEB(nginx) 服务。
 
 
 
-## 基本信息
+**版本信息：**
 
-* 镜像地址：endial/nginx:1.16.1
-  * 依赖镜像：endial/ubuntu:18.04
+- 1.16.1、latest
+
+**镜像信息：**
+
+* 镜像地址：colovu/nginx:latest
+  * 依赖镜像：colovu/ubuntu:latest
 
 
 
@@ -54,7 +58,7 @@ docker run -d --name nginx \
   -v /host/dir/to/www:/srv/www:ro \
   -v /host/dir/to/log:/var/log \
   -v /host/dir/to/conf:/srv/conf \
-  endial/nginx:1.16.1
+  colovu/nginx:latest
 ```
 
 使用宿主机用户（如`www-data`用户）生成新的容器：
@@ -66,7 +70,7 @@ docker run -d --name nginx \
   -v /host/dir/to/www:/srv/www:ro \
   -v /host/dir/to/log:/var/log \
   -v /host/dir/to/conf:/srv/conf \
-  endial/nginx:1.16.1
+  colovu/nginx:latest
 ```
 
 > 注意：如果使用自定义用户创建容器，且需要使用数据卷，可以有两种方式确保权限正确：
@@ -80,7 +84,7 @@ docker run -d --name nginx \
 docker run -d --name nginx \
   -p 80:8080 \
   --volumes-from dvc \
-  endial/nginx:1.16.1
+  colovu/nginx:latest
 ```
 
 
@@ -114,5 +118,5 @@ docker stop nginx
 
 ----
 
-本文原始来源 [Endial Fang](https://github.com/endial) @ [Github.com](https://github.com)
+本文原始来源 [Endial Fang](https://github.com/colovu) @ [Github.com](https://github.com)
 

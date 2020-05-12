@@ -1,15 +1,15 @@
-FROM endial/ubuntu:18.04
+FROM colovu/ubuntu:18.04
 
 ENV APP_MAJOR=1.16.1 \
 	PCRE_VERSION=8.43 \
 	OPENSSL_VERSION=1.1.1e \
-	HTTP_FLV_VERSION=1.2.7
-#	APP_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8
+	HTTP_FLV_VERSION=1.2.7 \
+	NGINX_KEYS='0xB0F4253373F8F6F510D42178520A9993A1C052F8'
 
 LABEL \
 	"Version"="v${APP_MAJOR}" \
 	"Description"="Docker image for Nginx ${APP_MAJOR} based on Ubuntu 18.04." \
-	"Dockerfile"="https://github.com/endial/docker-nginx" \
+	"Dockerfile"="https://github.com/colovu/docker-nginx" \
 	"Vendor"="Endial Fang (endial@126.com)"
 
 RUN set -eux; \
@@ -63,6 +63,8 @@ RUN set -eux; \
 		--with-poll_module \
 		--with-mail \
 	"; \
+	\
+# 更新源，并安装临时使用的软件包（使用完后可删除）
 	fetchDeps=" \
 		autoconf \
 		automake \
@@ -83,9 +85,11 @@ RUN set -eux; \
 		libgeoip-dev \
 		libterm-readkey-perl \
 	"; \
+	savedAptMark="$(apt-mark showmanual)"; \
 	apt-get update; \
 	apt-get install -y ${fetchDeps}; \
 	\
+# 安装应用程序及需要依赖的软件包
 	apt install -y --no-install-recommends \
 		zlib1g \
 		libxml2 \
@@ -98,7 +102,6 @@ RUN set -eux; \
 	\
 	wget -O nginx.tar.gz "http://nginx.org/download/nginx-${APP_MAJOR}.tar.gz"; \
 	wget -O nginx.tar.gz.asc "http://nginx.org/download/nginx-${APP_MAJOR}.tar.gz.asc"; \
-#	wget -O nginx_signing.key "https://nginx.org/keys/nginx_signing.key"; \
 	\
 	wget -O openssl.tar.gz --no-check-certificate "https://www.openssl.org/source/old/1.1.1/openssl-${OPENSSL_VERSION}.tar.gz"; \
 	wget -O openssl.tar.gz.asc --no-check-certificate "https://www.openssl.org/source/old/1.1.1/openssl-${OPENSSL_VERSION}.tar.gz.asc"; \
@@ -108,14 +111,18 @@ RUN set -eux; \
 	\
 	wget -O nginx-http-flv.tar.gz --no-check-certificate "https://github.com/winshining/nginx-http-flv-module/archive/v${HTTP_FLV_VERSION}.tar.gz"; \
 	\
-# verify the signature
-#	export GNUPGHOME="$(mktemp -d)"; \
-##	gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys ${APP_KEYS}; \
-#	gpg --import nginx_signing.key; \
-#	gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz; \
-#	command -v gpgconf > /dev/null && gpgconf --kill all || :; \
-#	rm -r "$GNUPGHOME" nginx.tar.gz.asc; \
-#	apt-key list; \
+# 安装软件包需要使用的GPG证书
+	export GNUPGHOME="$(mktemp -d)"; \
+	for key in ${NGINX_KEYS}; do \
+		gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "${key}"|| \
+		gpg --batch --keyserver pgp.mit.edu --recv-keys "${key}" || \
+		gpg --batch --keyserver keys.gnupg.net --recv-keys "${key}" || \
+		gpg --batch --keyserver keyserver.pgp.com --recv-keys "${key}"; \
+	done; \
+	gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz; \
+	\
+	command -v gpgconf > /dev/null && gpgconf --kill all; \
+	rm -rf "$GNUPGHOME"; \
 	\
 	mkdir -p nginx-${APP_MAJOR}; \
 	tar -xzvf nginx.tar.gz -C nginx-${APP_MAJOR} --strip-components 1; \
@@ -144,11 +151,24 @@ RUN set -eux; \
 	cd /; \
 	rm -rf /nginx-${APP_MAJOR}; \
 	ln -sf /srv/conf/nginx/nginx.conf /etc/nginx/nginx.conf; \
+	\
+# 设置临时目录的权限信息，设置为777是为了保证后续使用`--user`或`gosu`时，可以更改目录对应的用户属性信息；运行时会被更改为700或755
 	chown -Rf nginx:nginx /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx /var/cache/nginx; \
-# this 777 will be replaced by 700 or 755 at runtime (allows semi-arbitrary "--user" values)
 	chmod 777 /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx /var/cache/nginx; \
 	\
-	apt purge -y --auto-remove ${fetchDeps}; \
+# 查找新安装的应用相应的依赖软件包，并表示为'manual'，防止后续自动清理时被删除
+	apt-mark auto '.*' > /dev/null; \
+	{ [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; }; \
+	find /usr/local -type f -executable -exec ldd '{}' ';' \
+		| awk '/=>/ { print $(NF-1) }' \
+		| sort -u \
+		| xargs -r dpkg-query --search \
+		| cut -d: -f1 \
+		| sort -u \
+		| xargs -r apt-mark manual; \
+	\
+# 删除临时软件包，清理缓存
+	apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $fetchDeps; \
 	apt autoclean -y; \
 	rm -rf /var/lib/apt/lists/*;
 
