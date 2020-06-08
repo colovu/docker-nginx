@@ -24,7 +24,7 @@ RUN set -eux; \
 		--prefix=/etc/nginx \
 		--user=nginx \
 		--group=nginx \
-		--sbin-path=/usr/sbin/nginx \
+		--sbin-path=/usr/local/sbin/nginx \
 		--conf-path=/etc/nginx/nginx.conf \
 		--http-log-path=/var/log/nginx/access.log \
 		--error-log-path=/var/log/nginx/error.log \
