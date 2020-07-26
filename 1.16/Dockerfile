@@ -1,5 +1,19 @@
-FROM colovu/ubuntu:18.04
+# Ver: 1.0 by Endial Fang (endial@126.com)
+#
+# 指定原始系统镜像，常用镜像为 colovu/ubuntu:18.04、colovu/debian:10、colovu/alpine:3.12、colovu/openjdk:8u252-jre
+FROM colovu/debian:10
 
+# ARG参数使用"--build-arg"指定，如 "--build-arg apt_source=tencent"
+# sources.list 可使用版本：default / tencent / ustc / aliyun / huawei
+ARG apt_source=default
+
+# 外部指定应用版本信息，如 "--build-arg app_ver=6.0.0"
+ARG app_ver=1.16.1
+
+# 编译镜像时指定本地服务器地址，如 "--build-arg local_url=http://172.29.14.108/dist-files/"
+ARG local_url=""
+
+# 定义应用基础常量信息，该常量在容器内可使用
 ENV APP_MAJOR=1.16.1 \
 	PCRE_VERSION=8.43 \
 	OPENSSL_VERSION=1.1.1e \
@@ -12,8 +26,12 @@ LABEL \
 	"Dockerfile"="https://github.com/colovu/docker-nginx" \
 	"Vendor"="Endial Fang (endial@126.com)"
 
+# 镜像内应用安装脚本
+# 以下脚本可按照不同需求拆分为多个段，但需要注意各个段在结束前需要清空缓存
+# set -eux: 设置 shell 执行参数，分别为 -e(命令执行错误则退出脚本) -u(变量未定义则报错) -x(打印实际待执行的命令行)
 RUN set -eux; \
-# 确保程序使用静默安装，而非交互模式
+	\
+# 设置程序使用静默安装，而非交互模式；类似tzdata等程序需要使用静默安装
 	export DEBIAN_FRONTEND=noninteractive; \
 	groupadd -r nginx; \
 	useradd -r -g nginx -s /usr/sbin/nologin -d /usr/cache/nginx nginx; \
@@ -156,7 +174,7 @@ RUN set -eux; \
 	chown -Rf nginx:nginx /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx /var/cache/nginx; \
 	chmod 777 /etc/nginx /srv/conf/nginx /var/log/nginx /var/run/nginx /var/cache/nginx; \
 	\
-# 查找新安装的应用相应的依赖软件包，并表示为'manual'，防止后续自动清理时被删除
+# 查找新安装的应用及应用依赖软件包，并标识为'manual'，防止后续自动清理时被删除
 	apt-mark auto '.*' > /dev/null; \
 	{ [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; }; \
 	find /usr/local -type f -executable -exec ldd '{}' ';' \
@@ -167,11 +185,13 @@ RUN set -eux; \
 		| sort -u \
 		| xargs -r apt-mark manual; \
 	\
-# 删除临时软件包，清理缓存
-	apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $fetchDeps; \
-	apt autoclean -y; \
-	rm -rf /var/lib/apt/lists/*;
-
+# 删除安装的临时依赖软件包，清理缓存
+	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false ${fetchDeps}; \
+	apt-get autoclean -y; \
+	rm -rf /var/lib/apt/lists/*; \
+	\
+# 验证安装的软件是否可以正常运行，常规情况下放置在命令行的最后
+	: ;
 
 COPY entrypoint.sh /usr/local/bin/
 COPY ./nginx /etc/nginx
@@ -179,10 +199,12 @@ COPY ./nginx /etc/nginx
 VOLUME ["/srv/www", "/srv/conf", "/srv/cert", "/var/log", "/var/run"]
 
 # 解决使用gosu后，nginx: [emerg] bind() to 0.0.0.0:80 failed (13: Permission denied)
+# 默认使用gosu切换为新建用户启动，必须保证端口在1024之上
 EXPOSE 8080 8443
 
 STOPSIGNAL SIGTERM
 
+# 容器初始化命令，默认存放在：/usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]
 
 CMD ["nginx"]
