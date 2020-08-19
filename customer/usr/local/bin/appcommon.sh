@@ -27,6 +27,7 @@ docker_app_env() {
 export ENV_DEBUG=${ENV_DEBUG:-false}
 
 # Paths
+export APP_CONF_FILE=${APP_CONF_DIR}/nginx.conf
 
 # Application settings
 
@@ -162,7 +163,7 @@ zoo_configure_heap_size() {
 app_verify_minimum_env() {
     local error_code=0
 
-    LOG_D "Validating settings in ZOO_* env vars..."
+    LOG_D "Validating settings in NGINX_* env vars..."
 
     print_validation_error() {
         LOG_E "$1"

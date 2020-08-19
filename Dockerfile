@@ -277,4 +277,4 @@ ENTRYPOINT ["entrypoint.sh"]
 WORKDIR ${APP_DATA_DIR}
 
 # 应用程序的服务命令，必须使用非守护进程方式运行。如果使用变量，则该变量必须在运行环境中存在（ENV可以获取）
-CMD ["${APP_EXEC}"]
+CMD ["${APP_EXEC}", "-p", "${APP_CONF_DIR}", -c", "${APP_CONF_FILE}"]
