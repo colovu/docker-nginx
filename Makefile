@@ -15,7 +15,7 @@ build-arg:=--build-arg apt_source=tencent
 local_ip:=`ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $$2}'|tr -d "addr:"`
 build-arg+=--build-arg local_url=http://$(local_ip)/dist-files/
 
-.PHONY: build clean clearclean
+.PHONY: build clean clearclean upgrade
 
 build:
 	@echo "Build $(app_name):$(current_tag)"
