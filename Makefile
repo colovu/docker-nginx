@@ -32,3 +32,8 @@ clean:
 clearclean: clean
 	@echo "Clean all images for current application..."
 	@docker images | grep "$(app_name)" | awk '{print $$3}' | xargs docker rmi -f
+
+# 更新所有 colovu 仓库的镜像 
+upgrade: 
+	@echo "Upgrade all images..."
+	@docker images | grep 'colovu' | grep -v '<none>' | grep -v "latest-" | awk '{print $$1":"$$2}' | xargs -L 1 docker pull
