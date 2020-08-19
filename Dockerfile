@@ -183,8 +183,9 @@ RUN \
 # 下载需要的软件包资源。可使用 不校验、签名校验、SHA256 校验 三种方式
 	DIST_NAME="pcre-${PCRE_VERSION}.tar.gz"; \
 	DIST_URLS=" \
-		${local_url}pcre/ \
-		https://nchc.dl.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/ \
+		${local_url}/pcre/ \
+		https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/ \
+		https://jaist.dl.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/ \
 		"; \
 	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}"; \
 	\
