@@ -51,7 +51,7 @@ RUN \
 	\
 # 为应用创建对应的组、用户、相关目录
 	export OPENSSL_VERSION=1.1.1e; \
-	export PCRE_VERSION=8.43; \
+	export PCRE_VERSION=8.44; \
 	export HTTP_FLV_VERSION=1.2.7; \
 	export APP_DIRS="${APP_DEF_DIR:-} ${APP_CONF_DIR:-} ${APP_DATA_DIR:-} ${APP_CACHE_DIR:-} ${APP_RUN_DIR:-} ${APP_LOG_DIR:-} ${APP_CERT_DIR:-} ${APP_DATA_LOG_DIR:-} ${APP_HOME_DIR:-${APP_DATA_DIR}}"; \
 	mkdir -p ${APP_DIRS}; \
@@ -153,7 +153,7 @@ RUN \
 	DIST_NAME="${APP_NAME}-${APP_VERSION}.tar.gz"; \
 	DIST_KEYIDS="0xB0F4253373F8F6F510D42178520A9993A1C052F8"; \
 	DIST_URLS=" \
-		${local_url}${APP_NAME}/ \
+		${local_url}/${APP_NAME}/ \
 		http://nginx.org/download/ \
 		"; \
 	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}" --pgpkey "${DIST_KEYIDS}"; \
@@ -168,7 +168,7 @@ RUN \
 # 下载需要的软件包资源。可使用 不校验、签名校验、SHA256 校验 三种方式
 	DIST_NAME="openssl-${OPENSSL_VERSION}.tar.gz"; \
 	DIST_URLS=" \
-		${local_url}openssl/ \
+		${local_url}/openssl/ \
 		https://www.openssl.org/source/old/1.1.1/ \
 		"; \
 	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}"; \
@@ -199,7 +199,7 @@ RUN \
 # 下载需要的软件包资源。可使用 不校验、签名校验、SHA256 校验 三种方式
 	DIST_NAME="v${HTTP_FLV_VERSION}.tar.gz"; \
 	DIST_URLS=" \
-		${local_url}nginx-http-flv/ \
+		${local_url}/nginx-http-flv/ \
 		https://github.com/winshining/nginx-http-flv-module/archive/ \
 		"; \
 	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}"; \
