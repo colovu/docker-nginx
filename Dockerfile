@@ -1,87 +1,95 @@
-# Ver: 1.0 by Endial Fang (endial@126.com)
+# Ver: 1.6 by Endial Fang (endial@126.com)
 #
-# 指定原始系统镜像，常用镜像为 colovu/ubuntu:18.04、colovu/debian:10、colovu/alpine:3.12、colovu/openjdk:8u252-jre
-FROM colovu/debian:10
 
-# ARG参数使用"--build-arg"指定，如 "--build-arg apt_source=tencent"
-# sources.list 可使用版本：default / tencent / ustc / aliyun / huawei
-ARG apt_source=default
+# 可变参数 ========================================================================
 
-# 外部指定应用版本信息，如 "--build-arg app_ver=6.0.0"
-ARG app_ver=1.16.1
+# 设置当前应用名称及版本
+ARG app_name=nginx
+ARG app_version=1.16.1
 
-# 编译镜像时指定本地服务器地址，如 "--build-arg local_url=http://172.29.14.108/dist-files/"
+# 设置默认仓库地址，默认为 阿里云 仓库
+ARG registry_url="registry.cn-shenzhen.aliyuncs.com"
+
+# 设置 apt-get 源：default / tencent / ustc / aliyun / huawei
+ARG apt_source=aliyun
+
+# 编译镜像时指定用于加速的本地服务器地址
 ARG local_url=""
 
-# 定义应用基础常量信息，该常量在容器内可使用
-ENV APP_NAME=nginx \
-	APP_EXEC=nginx \
-	APP_VERSION=${app_ver}
+# 预处理 =========================================================================
+FROM ${registry_url}/colovu/dbuilder as builder
 
-# 定义应用基础目录信息，该常量在容器内可使用
-ENV	APP_HOME_DIR=/usr/local/${APP_NAME} \
-	APP_DEF_DIR=/etc/${APP_NAME} \
-	APP_CONF_DIR=/srv/conf/${APP_NAME} \
-	APP_DATA_DIR=/srv/data/${APP_NAME} \
-	APP_DATA_LOG_DIR=/srv/datalog/${APP_NAME} \
-	APP_CACHE_DIR=/var/cache/${APP_NAME} \
-	APP_RUN_DIR=/var/run/${APP_NAME} \
-	APP_LOG_DIR=/var/log/${APP_NAME} \
-	APP_CERT_DIR=/srv/cert/${APP_NAME}
+# 选择软件包源(Optional)，以加速后续软件包安装
+RUN select_source ${apt_source};
 
-LABEL \
-	"Version"="v${app_ver}" \
-	"Description"="Docker image for ${APP_NAME}(v${app_ver})." \
-	"Dockerfile"="https://github.com/colovu/docker-${APP_NAME}" \
-	"Vendor"="Endial Fang (endial@126.com)"
+# 安装依赖的软件包及库(Optional)
+RUN install_pkg autoconf automake gcc-multilib
 
-# 拷贝默认 Shell 脚本至容器相关目录中
-COPY prebuilds /
+RUN install_pkg	zlib1g-dev zlib1g \
+		libxml2-dev libxml2 \
+		libxslt1-dev libxslt1.1 \
+		libgd-dev libgd3 \
+		libc6-dev libc6 \
+		libgeoip-dev geoip-bin geoip-database \
+		libterm-readkey-perl 
 
-# 镜像内相应应用及依赖软件包的安装脚本；以下脚本可按照不同需求拆分为多个段，但需要注意各个段在结束前需要清空缓存
-RUN \
-# 设置程序使用静默安装，而非交互模式；默认情况下，类似 tzdata/gnupg/ca-certificates 等程序配置需要交互
-	export DEBIAN_FRONTEND=noninteractive; \
-	\
-# 设置 shell 执行参数，分别为 -e(命令执行错误则退出脚本) -u(变量未定义则报错) -x(打印实际待执行的命令行)
-	set -eux; \
-	\
-# 更改源为当次编译指定的源
-	cp /etc/apt/sources.list.${apt_source} /etc/apt/sources.list; \
-	\
-# 为应用创建对应的组、用户、相关目录
-	export OPENSSL_VERSION=1.1.1e; \
-	export PCRE_VERSION=8.44; \
-	export HTTP_FLV_VERSION=1.2.7; \
-	export APP_DIRS="${APP_DEF_DIR:-} ${APP_CONF_DIR:-} ${APP_DATA_DIR:-} ${APP_CACHE_DIR:-} ${APP_RUN_DIR:-} ${APP_LOG_DIR:-} ${APP_CERT_DIR:-} ${APP_DATA_LOG_DIR:-} ${APP_HOME_DIR:-${APP_DATA_DIR}}"; \
-	mkdir -p ${APP_DIRS}; \
-	groupadd -r -g 998 ${APP_NAME}; \
-	useradd -r -g ${APP_NAME} -u 999 -s /usr/sbin/nologin -d ${APP_DATA_DIR} ${APP_NAME}; \
-	\
-# 应用软件包及依赖项。相关软件包在镜像创建完成时，不会被清理
-	appDeps=" \
-		curl \
-		ca-certificates \
-		\
-		zlib1g \
-		libxml2 \
-		libxslt1.1 \
-		geoip-bin \
-		geoip-database \
-		libgd3 \
-		libc6 \
-	"; \
-	savedAptMark="$(apt-mark showmanual) ${appDeps}"; \
-	\
-	NGINX_CONFIG=" \
-		--prefix=/etc/nginx \
+ENV OPENSSL_VERSION=1.1.1e
+ENV PCRE_VERSION=8.44
+ENV HTTP_FLV_VERSION=1.2.7
+
+# 设置工作目录
+WORKDIR /usr/local
+
+# 下载并解压软件包 openssl
+RUN set -eux; \
+	appName="openssl-${OPENSSL_VERSION}.tar.gz"; \
+	[ ! -z ${local_url} ] && localURL=${local_url}/openssl; \
+	appUrls="${localURL:-} \
+		https://www.openssl.org/source/old/1.1.1 \
+		"; \
+	download_pkg unpack ${appName} "${appUrls}"; 
+
+# 下载并解压软件包 pcre
+RUN set -eux; \
+	appName="pcre-${PCRE_VERSION}.tar.gz"; \
+	[ ! -z ${local_url} ] && localURL=${local_url}/pcre; \
+	appUrls="${localURL:-} \
+		https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION} \
+		https://jaist.dl.sourceforge.net/project/pcre/pcre/${PCRE_VERSION} \
+		"; \
+	download_pkg unpack ${appName} "${appUrls}"; 
+
+# 下载并解压软件包 flv
+RUN set -eux; \
+	appName="v${HTTP_FLV_VERSION}.tar.gz"; \
+	[ ! -z ${local_url} ] && localURL=${local_url}/nginx-http-flv; \
+	appUrls="${localURL:-} \
+		https://github.com/winshining/nginx-http-flv-module/archive \
+		"; \
+	download_pkg unpack ${appName} "${appUrls}"; 
+
+# 下载并解压软件包 nginx
+RUN set -eux; \
+	appName="${app_name}-${app_version}.tar.gz"; \
+	[ ! -z ${local_url} ] && localURL=${local_url}/nginx; \
+	appUrls="${localURL:-} \
+		http://nginx.org/download \
+		"; \
+	download_pkg unpack ${appName} "${appUrls}"; 
+
+# 源码编译: 编译后将配置文件模板拷贝至 /usr/local/${app_name}/share/${app_name} 中
+RUN set -eux; \
+	APP_SRC="/usr/local/${app_name}-${app_version}"; \
+	cd ${APP_SRC}; \
+	./configure \
+		--prefix=/usr/local/nginx \
 		--user=nginx \
 		--group=nginx \
-		--sbin-path=/usr/local/sbin/nginx \
+		--sbin-path=/usr/local/nginx/sbin/nginx \
 		--conf-path=/etc/nginx/nginx.conf \
 		--http-log-path=/var/log/nginx/access.log \
 		--error-log-path=/var/log/nginx/error.log \
-		--modules-path=/usr/lib/nginx/modules \
+		--modules-path=/usr/local/nginx/modules \
 		--pid-path=/var/run/nginx/nginx.pid \
 		--lock-path=/var/run/nginx/nginx.lock \
 		--http-client-body-temp-path=/var/cache/nginx/client_temp \
@@ -90,11 +98,11 @@ RUN \
 		--http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
 		--http-scgi-temp-path=/var/cache/nginx/scgi_temp \
 		\
-		--with-pcre=./pcre-$PCRE_VERSION \
+		--with-pcre=/usr/local/pcre-$PCRE_VERSION \
 		--with-pcre-jit \
-		--add-module=./nginx-http-flv-module-$HTTP_FLV_VERSION \
+		--add-module=/usr/local/nginx-http-flv-module-$HTTP_FLV_VERSION \
 		--with-http_flv_module \
-		--with-openssl=./openssl-$OPENSSL_VERSION \
+		--with-openssl=/usr/local/openssl-$OPENSSL_VERSION \
 		--with-http_ssl_module \
 		--with-http_v2_module \
 		--with-http_realip_module \
@@ -115,166 +123,79 @@ RUN \
 		--with-threads \
 		--with-poll_module \
 		--with-mail \
-	"; \
-	\
-# 安装临时使用的软件包及依赖项。相关软件包在镜像创建完后时，会被清理
-	fetchDeps=" \
-		wget \
-		ca-certificates \
-		\
-		apt-transport-https \
-		lsb-release \
-		\
-		autoconf \
-		automake \
-		gcc \
-		g++ \
-		gcc-multilib \
-		make \
-		\
-		dirmngr \
-		gnupg \
-		\
-		zlib1g-dev \
-		libxml2-dev \
-		libxslt-dev \
-		libgd-dev \
-		libc6-dev \
-		libgeoip-dev \
-		libterm-readkey-perl \
-	"; \
-	apt update; \
-	apt upgrade -y; \
-	apt install -y --no-install-recommends ${fetchDeps}; \
-	\
-	\
-	\
-# 下载需要的软件包资源。可使用 不校验、签名校验、SHA256 校验 三种方式
-	DIST_NAME="${APP_NAME}-${APP_VERSION}.tar.gz"; \
-	DIST_KEYIDS="0xB0F4253373F8F6F510D42178520A9993A1C052F8"; \
-	DIST_URLS=" \
-		${local_url}/${APP_NAME}/ \
-		http://nginx.org/download/ \
-		"; \
-	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}" --pgpkey "${DIST_KEYIDS}"; \
-	\
-	APP_SRC=/usr/local/src/nginx-${APP_VERSION}; \
-	mkdir -p ${APP_SRC}; \
-	tar --extract --file "${DIST_NAME}" --directory "${APP_SRC}" --strip-components 1; \
-	rm -rf "${DIST_NAME}"; \
-	\
-	\
-	\
-# 下载需要的软件包资源。可使用 不校验、签名校验、SHA256 校验 三种方式
-	DIST_NAME="openssl-${OPENSSL_VERSION}.tar.gz"; \
-	DIST_URLS=" \
-		${local_url}/openssl/ \
-		https://www.openssl.org/source/old/1.1.1/ \
-		"; \
-	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}"; \
-	\
-	APP_SRC=/usr/local/src/nginx-${APP_VERSION}/openssl-${OPENSSL_VERSION}; \
-	mkdir -p ${APP_SRC}; \
-	tar --extract --file "${DIST_NAME}" --directory "${APP_SRC}" --strip-components 1; \
-	rm -rf "${DIST_NAME}"; \
-	\
-	\
-	\
-# 下载需要的软件包资源。可使用 不校验、签名校验、SHA256 校验 三种方式
-	DIST_NAME="pcre-${PCRE_VERSION}.tar.gz"; \
-	DIST_URLS=" \
-		${local_url}/pcre/ \
-		https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/ \
-		https://jaist.dl.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/ \
-		"; \
-	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}"; \
-	\
-	APP_SRC=/usr/local/src/nginx-${APP_VERSION}/pcre-${PCRE_VERSION}; \
-	mkdir -p ${APP_SRC}; \
-	tar --extract --file "${DIST_NAME}" --directory "${APP_SRC}" --strip-components 1; \
-	rm -rf "${DIST_NAME}"; \
-	\
-	\
-	\
-# 下载需要的软件包资源。可使用 不校验、签名校验、SHA256 校验 三种方式
-	DIST_NAME="v${HTTP_FLV_VERSION}.tar.gz"; \
-	DIST_URLS=" \
-		${local_url}/nginx-http-flv/ \
-		https://github.com/winshining/nginx-http-flv-module/archive/ \
-		"; \
-	. /usr/local/scripts/libdownload.sh && download_dist "${DIST_NAME}" "${DIST_URLS}"; \
-	\
-	APP_SRC=/usr/local/src/nginx-${APP_VERSION}/nginx-http-flv-module-${HTTP_FLV_VERSION}; \
-	mkdir -p ${APP_SRC}; \
-	tar --extract --file "${DIST_NAME}" --directory "${APP_SRC}" --strip-components 1; \
-	rm -rf "${DIST_NAME}"; \
-	\
-	\
-	\
-# 源码编译方式安装: 编译后将原始配置文件拷贝至 ${APP_DEF_DIR} 中
-	cd /usr/local/src/nginx-${APP_VERSION}; \
-	./configure ${NGINX_CONFIG}; \
+		; \
 	make -j "$(nproc)"; \
 	make install; \
-	\
-	echo "<?php" >/etc/nginx/html/index.php; \
-	echo "phpinfo();" >>/etc/nginx/html/index.php; \
-	echo "?>" >>/etc/nginx/html/index.php; \	
-	\
-	strip $(which nginx); \
-	\
-	cd /; \
-	rm -rf /usr/local/src/nginx-${APP_VERSION}; \
-#	ln -sf /srv/conf/nginx/nginx.conf /etc/nginx/nginx.conf; \
-	\
-# 设置应用关联目录的权限信息
-	chown -Rf ${APP_NAME}:${APP_NAME} ${APP_DIRS}; \
-	\
-# 查找新安装的应用及应用依赖软件包，并标识为'manual'，防止后续自动清理时被删除
-	apt-mark auto '.*' > /dev/null; \
-	{ [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; }; \
-	find /usr/local -type f -executable -exec ldd '{}' ';' \
-		| awk '/=>/ { print $(NF-1) }' \
-		| sort -u \
-		| xargs -r dpkg-query --search \
-		| cut -d: -f1 \
-		| sort -u \
-		| xargs -r apt-mark manual; \
-	\
-# 删除安装的临时依赖软件包，清理缓存
-	apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false ${fetchDeps}; \
-	apt autoclean -y; \
-	rm -rf /var/lib/apt/lists/*; \
-	:;
+	strip /usr/local/nginx/sbin/nginx;
 
-# 拷贝应用专用 Shell 脚本至容器相关目录中
-COPY customer /
-
+# 生成默认 PHP 首页文件
 RUN set -eux; \
-# 设置容器入口脚本的可执行权限
-	chmod +x /usr/local/bin/entrypoint.sh; \
-	\
-# 检测是否存在对应版本的 overrides 脚本文件；如果存在，执行
-	{ [ ! -e "/usr/local/overrides/overrides-${app_ver}.sh" ] || /bin/bash "/usr/local/overrides/overrides-${app_ver}.sh"; }; \
-	\
-# 验证安装的软件是否可以正常运行，常规情况下放置在命令行的最后
-	gosu ${APP_NAME} ${APP_EXEC} -V ; \
-	:;
+	echo "<?php" >/usr/local/nginx/html/index.php; \
+	echo "phpinfo();" >>/usr/local/nginx/html/index.php; \
+	echo "?>" >>/usr/local/nginx/html/index.php;
+
+# 检测并生成依赖文件记录
+RUN set -eux; \
+	find /usr/local/${app_name} -type f -executable -exec ldd '{}' ';' | \
+		awk '/=>/ { print $(NF-1) }' | \
+		sort -u | \
+		xargs -r dpkg-query --search | \
+		cut -d: -f1 | \
+		sort -u >/usr/local/${app_name}/runDeps;
+
+
+# 镜像生成 ========================================================================
+FROM ${registry_url}/colovu/debian:10
+
+# 镜像所包含应用的基础信息，定义环境变量，供后续脚本使用
+ENV APP_NAME=${app_name} \
+	APP_USER=nginx \
+	APP_EXEC=nginx \
+	APP_VERSION=${app_version}
+
+ENV	APP_HOME_DIR=/usr/local/${APP_NAME} \
+	APP_DEF_DIR=/etc/${APP_NAME}
+
+ENV PATH="${APP_HOME_DIR}/bin:${APP_HOME_DIR}/sbin:${PATH}" \
+	LD_LIBRARY_PATH="${APP_HOME_DIR}/lib"
+
+LABEL \
+	"Version"="v${app_version}" \
+	"Description"="Docker image for ${app_name}(v${app_version})." \
+	"Dockerfile"="https://github.com/colovu/docker-${app_name}" \
+	"Vendor"="Endial Fang (endial@126.com)"
+
+# 拷贝应用使用的客制化脚本，并创建对应的用户及数据存储目录
+COPY customer /
+RUN create_user && prepare_env
+
+# 从预处理过程中拷贝软件包(Optional)，可以使用阶段编号或阶段命名定义来源
+COPY --from=0 /usr/local/${APP_NAME}/ /usr/local/${APP_NAME}
+COPY --from=0 /etc/${APP_NAME}/ /etc/${APP_NAME}
 
 COPY ./nginx /etc/nginx
 
+# 选择软件包源(Optional)，以加速后续软件包安装
+RUN select_source ${apt_source}
+
+# 安装依赖的软件包及库(Optional)
+RUN install_pkg `cat /usr/local/${APP_NAME}/runDeps`; 
+
+# 执行预处理脚本，并验证安装的软件包
+RUN set -eux; \
+	override_file="/usr/local/overrides/overrides-${APP_VERSION}.sh"; \
+	[ -e "${override_file}" ] && /bin/bash "${override_file}"; \
+	gosu ${APP_USER} ${APP_EXEC} -V ; \
+	gosu --version;
+
 # 默认提供的数据卷
-VOLUME ["/srv/conf", "/srv/data", "/srv/cert", "/srv/datalog", "/var/log"]
+VOLUME ["/srv/conf", "/srv/data", "/srv/cert", "/var/log"]
 
 # 默认使用gosu切换为新建用户启动，必须保证端口在1024之上
 EXPOSE 8080 8443
 
-STOPSIGNAL SIGTERM
-
-# 容器初始化命令，默认存放在：/usr/local/bin/entrypoint.sh
-ENTRYPOINT ["entrypoint.sh"]
-
-WORKDIR ${APP_DATA_DIR}
+# 容器初始化命令，默认存放在：/usr/local/bin/entry.sh
+ENTRYPOINT ["entry.sh"]
 
 # 应用程序的服务命令，必须使用非守护进程方式运行。如果使用变量，则该变量必须在运行环境中存在（ENV可以获取）
 CMD ["${APP_EXEC}", "-p", "${APP_CONF_DIR}", "-c", "${APP_CONF_FILE}"]
