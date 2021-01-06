@@ -19,7 +19,11 @@ ARG local_url=""
 # 预处理 =========================================================================
 FROM ${registry_url}/colovu/dbuilder as builder
 
-ARG app_name app_version registry_url apt_source local_url
+ARG app_name
+ARG app_version
+ARG registry_url
+ARG apt_source
+ARG local_url
 
 # 选择软件包源(Optional)，以加速后续软件包安装
 RUN select_source ${apt_source};
@@ -149,7 +153,11 @@ RUN set -eux; \
 # 镜像生成 ========================================================================
 FROM ${registry_url}/colovu/debian:10
 
-ARG app_name app_version registry_url apt_source local_url
+ARG app_name
+ARG app_version
+ARG registry_url
+ARG apt_source
+ARG local_url
 
 # 镜像所包含应用的基础信息，定义环境变量，供后续脚本使用
 ENV APP_NAME=${app_name} \
