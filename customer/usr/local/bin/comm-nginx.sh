@@ -329,7 +329,7 @@ nginx_default_init() {
 
         # 修改默认 index.html 文件，增加限制主机名信息，用于集群测试验证
         HostInfo="<h1>Welcome to nginx!</h1></br><p>Served by host: ${HOSTNAME}</p>"
-        sed -i -e "s#^<h1>Welcome to nginx!</h1>*#<h1>Welcome to nginx!</h1></br><p>Served by host: ${HOSTNAME}</p>#g" "/usr/local/nginx/html/index.html"
+        sed -i -e "s#^<h1>Welcome to nginx!</h1>*#<h1>Welcome to nginx!</h1></br><p>Served by host: ${HOSTNAME}</p>#g" "/srv/conf/nginx/html/index.html"
 
         touch "${APP_CONF_DIR}/.app_init_flag"
         echo "$(date '+%Y-%m-%d %H:%M:%S') : Init success." >> "${APP_CONF_DIR}/.app_init_flag"

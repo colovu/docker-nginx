@@ -19,6 +19,8 @@ ARG local_url=""
 # 预处理 =========================================================================
 FROM ${registry_url}/colovu/dbuilder as builder
 
+ARG app_name app_version registry_url apt_source local_url
+
 # 选择软件包源(Optional)，以加速后续软件包安装
 RUN select_source ${apt_source};
 
@@ -82,7 +84,7 @@ RUN set -eux; \
 	APP_SRC="/usr/local/${app_name}-${app_version}"; \
 	cd ${APP_SRC}; \
 	./configure \
-		--prefix=/usr/local/nginx \
+		--prefix=/etc/nginx \
 		--user=nginx \
 		--group=nginx \
 		--sbin-path=/usr/local/nginx/sbin/nginx \
@@ -130,9 +132,9 @@ RUN set -eux; \
 
 # 生成默认 PHP 首页文件
 RUN set -eux; \
-	echo "<?php" >/usr/local/nginx/html/index.php; \
-	echo "phpinfo();" >>/usr/local/nginx/html/index.php; \
-	echo "?>" >>/usr/local/nginx/html/index.php;
+	echo "<?php" >/etc/nginx/html/index.php; \
+	echo "phpinfo();" >>/etc/nginx/html/index.php; \
+	echo "?>" >>/etc/nginx/html/index.php;
 
 # 检测并生成依赖文件记录
 RUN set -eux; \
@@ -146,6 +148,8 @@ RUN set -eux; \
 
 # 镜像生成 ========================================================================
 FROM ${registry_url}/colovu/debian:10
+
+ARG app_name app_version registry_url apt_source local_url
 
 # 镜像所包含应用的基础信息，定义环境变量，供后续脚本使用
 ENV APP_NAME=${app_name} \
@@ -198,4 +202,4 @@ EXPOSE 8080 8443
 ENTRYPOINT ["entry.sh"]
 
 # 应用程序的服务命令，必须使用非守护进程方式运行。如果使用变量，则该变量必须在运行环境中存在（ENV可以获取）
-CMD ["${APP_EXEC}", "-p", "${APP_CONF_DIR}", "-c", "${APP_CONF_FILE}"]
+CMD ["${APP_EXEC}", "-c", "${APP_CONF_FILE}"]
