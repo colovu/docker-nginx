@@ -8,7 +8,7 @@
 
 **版本信息：**
 
-- 1.16.1、latest
+- 1.16、latest
 
 **镜像信息：**
 
@@ -24,10 +24,10 @@ Docker 快速启动命令：
 
 ```shell
 # 从 Docker Hub 服务器下载镜像并启动
-$ docker run -d -p 80:8080 colovu/nginx:1.16.1
+$ docker run -d -p 80:8080 colovu/nginx:1.16
 
 # 从 Aliyun 服务器下载镜像并启动
-$ docker run -d -p 80:8080 registry.cn-shenzhen.aliyuncs.com/colovu/nginx:1.16.1
+$ docker run -d -p 80:8080 registry.cn-shenzhen.aliyuncs.com/colovu/nginx:1.16
 ```
 
 - 后续相关命令行默认使用 Docker Hub 镜像服务器做说明
@@ -163,7 +163,7 @@ max_wal_size = '400MB'
 
 ## 更新记录
 
-- 2021/1/1 (1.0): 初始版本 
+- 2021/1/1 (1.16): 初始版本，基于 Nginx 1.16.1  
 
 
 
