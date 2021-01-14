@@ -5,7 +5,7 @@
 
 # 设置当前应用名称及版本
 ARG app_name=nginx
-ARG app_version=1.16.1
+ARG app_version=1.18.0
 
 # 设置默认仓库地址，默认为 阿里云 仓库
 ARG registry_url="registry.cn-shenzhen.aliyuncs.com"
