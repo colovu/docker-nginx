@@ -14,8 +14,11 @@
 **镜像信息：**
 
 * 镜像地址：
-  - 国内镜像仓库：registry.cn-shenzhen.aliyuncs.com/colovu/nginx
+  - Aliyun仓库：registry.cn-shenzhen.aliyuncs.com/colovu/nginx
   - DockerHub：colovu/nginx
+  * 依赖镜像：debian:buster-slim
+
+> 后续相关命令行默认使用`[Docker Hub](https://hub.docker.com)`镜像服务器做说明
 
 
 
@@ -25,13 +28,12 @@ Docker 快速启动命令：
 
 ```shell
 # 从 Docker Hub 服务器下载镜像并启动
-$ docker run -d -p 80:8080 colovu/nginx:1.18
+$ docker run -d -p 80:8080 colovu/nginx
 
 # 从 Aliyun 服务器下载镜像并启动
-$ docker run -d -p 80:8080 registry.cn-shenzhen.aliyuncs.com/colovu/nginx:1.18
+$ docker run -d -p 80:8080 registry.cn-shenzhen.aliyuncs.com/colovu/nginx
 ```
 
-- 后续相关命令行默认使用 Docker Hub 镜像服务器做说明
 
 
 
@@ -66,8 +68,8 @@ $ docker-compose up -d
 镜像默认提供以下数据卷定义，默认数据分别存储在自动生成的应用名对应`nginx`子目录中：
 
 ```shell
- /srv/data				# 站点源文件
- /srv/conf				# nginx 配置文件
+ /srv/conf					# nginx 配置文件
+ /srv/data					# 站点源文件
  /var/log					# 日志文件
  /var/run					# 进程运行PID文件
 ```
@@ -117,23 +119,30 @@ max_wal_size = '400MB'
     + `___` ==> `-` : 环境变量中的`三下划线`会被转义为设置属性中的`中划线`
 
 
+
 ### 常规配置参数
 
 常规配置参数用来配置容器基本属性，一般情况下需要设置，主要包括：
 
 - 
 
+
+
 ### 常规可选参数
 
 如果没有必要，可选配置参数可以不用定义，直接使用对应的默认值，主要包括：
 
-- `ENV_DEBUG`：默认值：**false**。设置是否输出容器调试信息。可选值：1、true、yes
+- `ENV_DEBUG`：默认值：**false**。设置是否输出容器调试信息。可选值：no、true、yes
+
+
 
 ### 集群配置参数
 
 配置服务为集群工作模式时，通过以下参数进行配置：
 
 - 
+
+
 
 ### TLS配置参数
 
@@ -147,12 +156,14 @@ max_wal_size = '400MB'
 
 ### 容器安全
 
-本容器默认使用应用对应的运行时用户及用户组运行应用，以加强容器的安全性。在使用非`root`用户运行容器时，相关的资源访问会受限；应用仅能操作镜像创建时指定的路径及数据。使用`Non-root`方式的容器，更适合在生产环境中使用。
+本容器默认使用`non-root`运行应用，以加强容器的安全性。在使用`non-root`用户运行容器时，相关的资源访问会受限；应用仅能操作镜像创建时指定的路径及数据。使用`non-root`方式的容器，更适合在生产环境中使用。
 
 如果需要赋予容器内应用访问外部设备的权限，可以使用以下两种方式：
 
 - 启动参数增加`--privileged=true`选项
 - 针对特定权限需要使用`--cap-add`单独增加特定赋权，如：ALL、NET_ADMIN、NET_RAW
+
+如果需要切换为`root`方式运行应用，可以在启动命令中增加`-u root`以指定运行的用户。
 
 
 
