@@ -37,6 +37,10 @@ export APP_CERT_DIR="/srv/cert/${APP_NAME}"
 export APP_CONF_FILE=${APP_CONF_DIR}/nginx.conf
 
 # 内部变量
+export APP_PID_FILE="${APP_PID_FILE:-${APP_RUN_DIR}/${APP_NAME}.pid}"
+
+export APP_DAEMON_USER="${APP_NAME}"
+export APP_DAEMON_GROUP="${APP_NAME}"
 
 # 个性化变量
 
