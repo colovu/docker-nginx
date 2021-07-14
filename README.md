@@ -34,6 +34,7 @@ $ docker run -d -p 80:8080 colovu/nginx
 $ docker run -d -p 80:8080 registry.cn-shenzhen.aliyuncs.com/colovu/nginx
 ```
 
+启动后，可以使用浏览器访问:`http://localhost/`，出现默认的 Nginx 首页。
 
 
 
